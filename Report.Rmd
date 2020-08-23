@@ -1,0 +1,51 @@
+---
+title: "Causes of death"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+
+It is estimated that on average about fifty-five million people die each year. People die from several reasons ranging from sickness to one taking his/her life by himself or herself. In 2018, it was also reported that about 61 million people died across the world respectively. Such questions as: 
+
+• What caused the death of all these people?
+
+• How has causes of death changed over time?
+
+• How different is the causes of death from one country to another?
+
+Finding reliable answers to these questions led us to our interest in analyzing the causes of death across world with using data visualization techniques.
+
+
+### Data
+
+In this project, I made use if 14 different datasets from three main sources. These are:
+
+1. Six separate sets of data from the World Health Organization (WHO).
+
+2. Five sets of data from the Institute for Health Metrics and Evaluation’s (IHME), 2019 report on Burden and Disease.
+
+3. Three sets of data 3 sets of data from the Global Burden of Disease Study for 2019.
+
+
+In all, 195 countries were capture by these datasets which includes 192 UN recognized list of countries in addition to The Holy See and the state of Palestine. A total of 33 variables was used for the analyses including 31 causes of deaths recorded globally. Each data contains an average of 7000 observations from 1991 through to 2018 respectively. We used R programming to explore, cleaned and prepared all the datasets for the analysis.
+
+
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
