@@ -4,7 +4,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, fig.width=10)
 ```
 
 ## Introduction
@@ -35,17 +35,624 @@ In this project, I made use if 14 different datasets from three main sources. Th
 In all, 195 countries were capture by these datasets which includes 192 UN recognized list of countries in addition to The Holy See and the state of Palestine. A total of 33 variables was used for the analyses including 31 causes of deaths recorded globally. Each data contains an average of 7000 observations from 1991 through to 2018 respectively. We used R programming to explore, cleaned and prepared all the datasets for the analysis.
 
 
+**Figure 1. Causes of death in the world (1991-2018)**
 
-```{r cars}
-summary(cars)
+```{r}
+#####------------ Project------------------------------#####
+
+# download libraries needed
+library(tidyverse)
+library(plotly)
+library(gapminder)
+library(gganimate)
+library(gridExtra) 
+library(RColorBrewer)
+library(gifski)
+
+
+##------ 1- Number of death by cause data
+# the data
+path1="https://raw.githubusercontent.com/Darwin22/Causes_of_death/master/data/Number%20of%20deaths%20by%20Cause.csv"
+# importing the data
+dcause = read.csv(path1)
+#head(dcause)
+
+# Gathered all causes of death in one field called "cause"
+dcause2 <- gather(dcause, "cause", "nb_death", 3:33)
+
+# removing NA values
+dcause2 = na.omit(dcause2)
+
+
+# Setup the palette to taking care of the bars color:
+library(RColorBrewer)
+nb.cols <- 30
+mycolors <- colorRampPalette(brewer.pal(8, "Set2"))(nb.cols)
+
+
+
+# Animate plot :
+dcause2 %>%
+  mutate(cause = factor(cause)) %>%
+  filter(Entity=="World") %>%
+  group_by(Year) %>%
+  ggplot(aes(reorder(cause, nb_death), nb_death/1000000,fill=cause))+
+  geom_bar(stat="identity")+
+  scale_fill_manual(values = mycolors)+
+  geom_text(aes(y=15, x= 5,label = paste(Year, " ")), vjust = 0.2, hjust = 1)+
+  coord_flip() +
+  theme_classic() + theme(legend.position = "none")+
+  xlab("Cause of death")+
+  ylab("Number of deaths (in millions)")+
+  ggtitle(label = "Number of death in the world", subtitle = "by cause of death")+
+  transition_states(Year, transition_length = 4, state_length = 1) +
+    enter_fade() + 
+  exit_shrink() +
+  ease_aes('sine-in-out')
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+
+
+**Figure 2. Causes of death in the world in 2018**
+
+I begin my  visualization technique with a bar graph showing deaths caused by the various categories in millions.
+From the figure below we observe that the leading cause of death worldwide in the year 2018 is Cardiovascular diseases followed by Cancers. Poisoning, heat and natural deaths were the least causes of death respectively for this given year.
+
+
+```{r}
+P  <- dcause2 %>%
+  mutate(cause = factor(cause)) %>%
+  filter(Entity=="World" & Year == '2018') %>%
+  ggplot(aes(reorder(cause, nb_death), nb_death/1000000,fill=cause))+
+  geom_bar(stat="identity")+
+  #scale_fill_brewer(palette="Spectral")+
+  scale_fill_manual(values = mycolors)+
+  geom_text(aes(x = cause, y = (nb_death/1000000)+0.5, label = round(nb_death/1000000,2)))+
+  geom_text(aes(y=15, x= 5,label = paste(Year, " ")), vjust = 0.2, hjust = 1)+
+  coord_flip() +
+  theme_classic() + theme(legend.position = "none")+
+  xlab("Cause death")+
+  ylab("Number of deaths in 2018 (in millions)")+
+  ggtitle(label = "Number of death in the word in 2018", subtitle = "by cause of death")
+
+ggplotly(P) 
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+ 
+ 
+ **Figure 3. Number of death by group of ages and by type of diseases**
+ 
+ 
+ Figure 3 (left) shows the global distribution of causes of deaths by five defined age groups from 1991 to 2018. In this graph we see that age group between 5 and 14 are the least people that recorded deaths across these years while age 70 and able recorded the highest with increasing numbers as the year goes by. Also, children under age 5 significantly recorded an increasing number of deaths as the years goes by.
+ 
+ 
+Figure 3 (right) also shows a distribution of causes of death under three categories (communicable diseases, non-communicable diseases and injuries). Non-communicable diseases turns to record the highest number of deaths for this period of time while injuries recorded the least number of deaths among this category.
+ 
+ 
+```{r}
+##------ 3 - Number of death by age group and by type of diseases
+# the data
+path01="https://raw.githubusercontent.com/Darwin22/Causes_of_death/master/data/number-of-deaths-by-age-group.csv"
+
+path02="https://raw.githubusercontent.com/Darwin22/Causes_of_death/master/data/total%20deaths%20by%20three%20general%20causes.csv"
+
+Rdata1 = read.csv(path01)
+#head(Rdata1)
+
+Rdata2 = read.csv(path02)
+#head(Rdata2)
+
+#--- gather age group and type of diseases in one field:
+
+data_long <- gather(Rdata1, Ages, number, Under_5:X70_plus)
+data_long1 <- gather(Rdata2, Diseases, number, Non_com_diseases:Injuries)
+
+nb.cols <- 6
+mycolor2 <- colorRampPalette(brewer.pal(8, "Set2"))(nb.cols)
+
+
+# Area graph for age groups over the years
+
+P1  <- data_long %>%
+  mutate(Ages = factor(Ages)) %>%
+  filter(Entity=="World") %>%
+  ggplot(aes(x=Year, y=number/1000000,fill=Ages))+
+  geom_area() +
+  xlab("Years")+
+  ylab("Number of Deaths by group of ages (In million)")+
+  scale_fill_manual(values = mycolor2,
+                   breaks=c("Under_5", "X15.49_yrs", "X5.14_yrs", "X50.69_yrs", "X70_plus"),
+                   labels=c("Under 5", "15-49 yrs", "5-14 yrs", "50-69 yrs", "70 or plus"))+
+  ggtitle("Death by group of ages, world")
+  
+
+
+
+
+# Area graph for type of diseases over the years
+
+P2  <- data_long1 %>%
+  mutate(Diseases = factor(Diseases)) %>%
+  filter(Entity=="World") %>%
+  ggplot(aes(x=Year, y=number/1000000,fill=Diseases))+
+  geom_area() +
+  xlab("Years")+
+  ylab("Number of Deaths (In million)")+
+  scale_fill_manual(values = mycolor2,
+                    breaks=c("Non_com_diseases", "Com_diseases", "Injuries"),
+                    labels=c("Non Communicable", "Communicable", "Injuries"))+
+  ggtitle("Death by type of diseases, world")
+
+
+grid.arrange(P1, P2, ncol = 2)
+```
+
+
+
+
+
+**Figure 4. Causes of deaths among age group 5 -14 between USA and the world in 2018.**
+
+Below we try to compare major causes of death of children (Between 5 and 14 years old) in USA and those from the rest of the world. We observed that Road accidents and teen cancer are the top two causes of death for both children in USA and the rest of the world in 2018. Also, while malaria is the least cause of death among this age group in the USA in 2018, it is significantly high among the same age group across the world. Homicide and suicide are among the leading causes of death for children in USA, while these two phenomena are relatively low in other parts of the world. 
+
+
+
+```{r}
+# causes between 5 and 14 year olds:
+path3="https://raw.githubusercontent.com/Darwin22/Causes_of_death/master/data/causes-of-death-in-5-14-year-olds.csv"
+
+dbetween514 = read.csv(path3)
+#head(dbetween514)
+
+# Gather the causes of death in one categorical variable
+dbetween514_2 <- gather(dbetween514, "cause", "nb_death", 3:22)
+
+# Filter by year 2018 and  Entity USA and word
+# spread the column entity so we can have USA deaths in a column and the world in another one:
+# Then, calculate the difference between USA and the rest of the world:
+dbetween514_3 <- filter(dbetween514_2, Entity %in% c('United States', 'World') & Year=='2018') %>%
+  spread(Entity, nb_death)%>%
+  mutate(rest_world = World - `United States`)
+
+# Graphs for USA
+P1  <- dbetween514_3 %>%
+  ggplot(aes(reorder(cause, `United States`), round(`United States`),fill=cause))+
+  geom_bar(stat="identity")+
+  #geom_text(aes(x = cause, y = `United States` + 50, label = round(`United States`)))+
+  coord_flip() +
+  theme_classic() + theme(legend.position = "none")+
+  scale_fill_manual(values = mycolors)+
+  ggtitle("Fig. 4A: Death between 5-14, USA, 2018")+
+  xlab("Cause death")+
+  ylab("Number of deaths")
+
+# Graph for the rest of the world
+P2  <- dbetween514_3 %>%
+  ggplot(aes(reorder(cause, rest_world), round(rest_world),fill=cause))+
+  geom_bar(stat="identity")+
+  #geom_text(aes(x = cause, y = rest_world + 50, label = round(rest_world)))+
+  coord_flip() +
+  theme_classic() + theme(legend.position = "none")+
+  scale_fill_manual(values = mycolors)+
+  ggtitle("Fig. 4B: Death between 5-14, world, 2018")+
+  xlab("Cause death")+
+  ylab("Number of deaths")
+
+
+grid.arrange(P1, P2, ncol = 2)
+```
+
+
+
+
+**Figure 5. Causes of deaths among age group 15 to 49 between USA and the world in 2018**
+
+
+For people with age in the bucket 15-49, we see a different pattern. In figure 5, we see that Drug, cancers and cardiovascular diseases are the leading cause of death. We also see that suicide is a bit high for that age group in USA. Cardiovascular diseases and cancers are also the leading causes of death in the world for that age group, alongside with HIV. But, contrary to USA, the number of deaths by drugs is very low, which tell us that USA might have a drug problem (Further analysis and research needs to confirm that).
+
+
+
+```{r}
+
+# causes between 15 and 49 year olds:
+path4="https://raw.githubusercontent.com/Darwin22/Causes_of_death/master/data/causes-of-death-in-15-49-year-olds.csv"
+dbet1549 = read.csv(path4)
+#head(dbet1549)
+
+# Gather the causes of death in one categorical variable
+dbet1549_2 <- gather(dbet1549, "cause", "nb_death", 3:26)
+
+# Filter by year 2018 and  Entity USA and word
+# spread the column entity so we can have USA deaths in a column and the world in another one:
+# Then, calculate the difference between USA and the rest of the world:
+dbet1549_3 <- filter(dbet1549_2, Entity %in% c('United States', 'World') & Year=='2018') %>%
+  spread(Entity, nb_death)%>%
+  mutate(rest_world = World - `United States`)
+
+# Graphs for USA
+P1  <- dbet1549_3 %>%
+  ggplot(aes(reorder(cause, `United States`), round(`United States`),fill=cause))+
+  geom_bar(stat="identity")+
+  #geom_text(aes(x = cause, y = `United States` + 50, label = round(`United States`)))+
+  coord_flip() +
+  theme_classic() + theme(legend.position = "none")+
+  scale_fill_manual(values = mycolors)+
+  ggtitle("Fig. 5A: Death between 15-49, USA, 2018")+
+  xlab("Cause death")+
+  ylab("Number of deaths")
+
+# Graph for the rest of the world
+P2  <- dbet1549_3 %>%
+  ggplot(aes(reorder(cause, rest_world), round(rest_world),fill=cause))+
+  geom_bar(stat="identity")+
+  #geom_text(aes(x = cause, y = rest_world + 50, label = round(rest_world)))+
+  coord_flip() +
+  theme_classic() + theme(legend.position = "none")+
+  scale_fill_manual(values = mycolors)+
+  ggtitle("Fig. 5B: Death between 15-49, world, 2018")+
+  xlab("Cause death")+
+  ylab("Number of deaths")
+
+
+grid.arrange(P1, P2, ncol = 2)
+```
+
+
+
+
+
+**Figure 6. Percentage of total deaths due to cardiovascular disease and cancers for each world’s region (1991-2018)**
+
+Here, we try to see how the percentage of total deaths due to cardiovascular diseases and cancers evolve overtime for different region in the world. We see region like Eastern Europe, Central Europe and Central Asia have the highest percentage of deaths due to Cardiovascular disease during the period 1990-2018.But, the trend is different for some regions. For instance, while the percentage is going upward for Central Asia, this is going down for central Europe. Western Europe and South Asia tend to have the lowest percentage of deaths due to cardiovascular diseases during that same period, but with a rapid growth for South Asia for the last couple years.
+On the other hand, for cancer, Western Europe tend to have the highest percentage of deaths due to cancers, followed by North America. Sub-Saharan Africa and South Asia are the regions where the percentages of total deaths due to cancers are the least during our time frame.
+
+
+```{r}
+###--------------------------------- Line graphs for cause of deaths
+
+##------   Figure 6. Death in cardiovascular and cancers by Part of the world
+
+scause = read.csv(path1)
+#head(scause)
+
+# calculate the total deaths:
+scause2 <- scause %>%
+  replace(is.na(.), 0) %>%
+  mutate(total_death = rowSums(.[3:33]))
+
+scause2 <- gather(scause2, "cause", "nb_death", 3:33)
+
+
+# spread the column entity so we can have USA deaths in a column and the world in another one:
+# Then, calculate the difference between USA and the rest of the world:
+scause3 <- filter(scause2, 
+                  Entity %in% c('Central Asia', 'Central Europe','East Asia', 
+                                'Eastern Europe', 'Latin America and Caribbean', 
+                                'North America', 'South Asia', 'Sub-Saharan Africa',
+                                'Western Europe'))
+#spread(Entity, nb_death)%>%
+#mutate(rest_world = World - `United States`)
+scause3 = na.omit(scause3)
+
+####----- Multiple line graphs:
+
+P1 <- scause3 %>% 
+  filter(cause=='Cardiovascular')%>%
+  ggplot(aes(x = Year, y = nb_death/total_death)) + 
+  geom_line(aes(color = Entity, linetype = Entity)) + 
+  #scale_color_manual(values = c("darkred", "steelblue"))+
+  ggtitle("Death by Cardiovascular over years")+
+  ylab("Percentage of total deaths")
+
+
+
+P2 <- scause3 %>% 
+  filter(cause=='Cancers')%>%
+  ggplot(aes(x = Year, y = nb_death/total_death)) + 
+  geom_line(aes(color = Entity, linetype = Entity)) + 
+  #scale_color_manual(values = c("darkred", "steelblue"))+
+  ggtitle("Death by Cancers over years")+
+  ylab("Percentage of total deaths")
+
+grid.arrange(P1, P2, ncol = 2)
+```
+
+
+
+
+
+**Figure 7. Percentage of deaths due to cardiovascular diseases and cancers for each socio-demographic index level (1991-2018)**
+
+
+Socio-demographic index (SDI) is a summary measure that identifies where countries or other geographic areas sit on the spectrum of development. Expressed on a scale of 0 to 1, SDI is a composite average of the rankings of the incomes per capita, average educational attainment, and fertility rates of all areas in the GBD study. Here, we try to see how the percentage of total deaths due to cardiovascular diseases and cancers evolve overtime for each SDI levels, and in which SDI level that percentage is the highest (respectively lowest). In figure 6, we see that High-middle SDI countries tend to have the highest percentage of deaths by Cardiovascular disease during the period 1990-2018, while low SDI tend to have the lowest during that same period. For cancers, High SDI tend to have the highest percentage of deaths during the period 1990-2018. One explication maybe that in low SDI countries, people mostly die by infectious diseases because of lack of health advancement.
+
+
+```{r}
+#----------------------------------------------------------------###
+# Figure 7. Death in cardiovascular and cancers by Socio-Demographic index:
+
+scause4 <- filter(scause2, 
+                  Entity %in% c('High SDI', 'High-middle SDI','Low SDI', 
+                                'Low-middle SDI', 'Middle SDI'))
+#spread(Entity, nb_death)%>%
+#mutate(rest_world = World - `United States`)
+scause4 = na.omit(scause4)
+
+####----- Multiple line graphs:
+
+P1 <- scause4 %>% 
+  filter(cause=='Cardiovascular')%>%
+  ggplot(aes(x = Year, y = nb_death/total_death)) + 
+  geom_line(aes(color = Entity, linetype = Entity)) + 
+  #scale_color_manual(values = c("darkred", "steelblue"))+
+  ggtitle(label="Death by Cardiovascular over years", 
+          subtitle = "by Socio-demographic Index (SDI)" )+
+  ylab("Percentage of total deaths")
+
+
+P2 <- scause4 %>% 
+  filter(cause=='Cancers')%>%
+  ggplot(aes(x = Year, y = nb_death/total_death)) + 
+  geom_line(aes(color = Entity, linetype = Entity)) + 
+  #scale_color_manual(values = c("darkred", "steelblue"))+
+  ggtitle(label = "Death by Cancers over years",
+          subtitle = "by Socio-demographic Index (SDI)")+
+  ylab("Percentage of total deaths")
+
+grid.arrange(P1, P2, ncol = 2)
+
+```
+
+
+
+**Figure 8 (D3). Number of Deaths caused by Cardiovascular Diseases across the world (2018)**
+
+I decided to explore more about the cardiovascular and Cancer related deaths. This is because as seen earlier, these two happens to be the two most leading causes of death globally.
+The above graph was built making use of the D3 library from JavaScript. It is an interactive choropleth map of the world showing the number of deaths recorded by each country in the world in 2018 related to Cardiovascular diseases. This map shows the raw count of the number of cases without adjusting for each country’s population size.
+From the graph, we can conclude that China and India recorded the highest number of cases followed by Russia and United States respectively. Africa as a continent recorded less cases on average while Greenland, an Island close to Canada reported the least number of deaths related to cardiovascular diseases.
+
+
+
+<script src="https://d3js.org/d3.v3.min.js"></script>
+<script src="https://d3js.org/queue.v1.min.js"></script>
+<script src="https://d3js.org/topojson.v1.min.js"></script>
+<script src="https://rawcdn.githack.com/charles-peprah/data/8c4f0d453df00b6c94ab5848ff5013ff32b735a5/d3_script.js"></script>
+<div id = "viz"></div> 
+
+```{js}
+var format = d3.format(",");
+
+// Set tooltips
+var tip = d3.tip()
+            .attr('class', 'd3-tip')   
+            .offset([-10, 0])
+            .html(function(d) {
+              return "<strong>Country: </strong><span class='details'>" + d.properties.name + "<br></span>" + "<strong>Cardiovascular Deaths: </strong><span class='details'>" + format(d.Cardiovascular) +"</span>";
+            })
+
+var margin = {top: 0, right:0, bottom: 0, left: 0},
+            width = 1500 - margin.left - margin.right,
+            height = 800 - margin.top - margin.bottom;
+
+var color = d3.scale.threshold()
+    .domain([500,1000,10000,50000,100000,250000,500000,1000000,1500000,3000000])
+    .range(["rgb(230,255,234)", "rgb(179,255,191)", "rgb(102,255,127)", "rgb(51,255,85)", "rgb(0,255,42)", "rgb(0,179,30)","rgb(0,128,21)","rgb(0,77,13)","rgb(0,51,0)","rgb(0,0,0)"]);
+
+
+var path = d3.geo.path();
+
+var svg = d3.select("#viz")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height)
+            .append('g')
+            .attr('class', 'map');
+
+var g = svg.append("g")
+    .attr("transform", "translate(580,100)");
+g.append("text")
+    .attr("class", "caption")
+    .attr("x", 5)
+    .attr("y", -10)
+    .text("2018 Number of Deaths From Cardiovascular Disease");
+
+// customised legend
+var g = svg.append("g")
+    .attr("class", "legendThreshold")
+    .attr("transform", "translate(120,200)");
+g.append("text")
+    .attr("class", "caption")
+    .attr("x", -5)
+    .attr("y", -10)
+    .text("CARDIOVASCULAR");
+
+    var g = svg.append("g")
+    .attr("class", "legendThreshold")
+    .attr("transform", "translate(150,243)");
+g.append("text")
+    .attr("class", "caption")
+    .attr("x", -5)
+    .attr("y", -10)
+    .text(">4,000,000");
+
+var g = svg.append("g")
+    .attr("class", "legendThreshold")
+    .attr("transform", "translate(150,295)");
+g.append("text")
+    .attr("class", "caption")
+    .attr("x", -5)
+    .attr("y", -10)
+    .text("1,000,000 - 4,000,000");
+
+    var g = svg.append("g")
+    .attr("class", "legendThreshold")
+    .attr("transform", "translate(150,345)");
+g.append("text")
+    .attr("class", "caption")
+    .attr("x", -5)
+    .attr("y", -10)
+    .text("50,000 - 100,000");
+
+var g = svg.append("g")
+    .attr("transform", "translate(100,230)");
+g.append("circle")
+    .style("fill", "#0A2A1B")
+    .attr("class", "caption")
+    .attr("r", 20)
+    .attr("x", -5)
+    .attr("y", -10);    
+
+
+    var g = svg.append("g")
+    .attr("class", "legendThreshold")
+    .attr("transform", "translate(150,395)");
+g.append("text")
+    .attr("class", "caption")
+    .attr("x", -5)
+    .attr("y", -10)
+    .text("1000 - 50,000");    
+
+    var g = svg.append("g")
+    .attr("class", "legendThreshold")
+    .attr("transform", "translate(150,445)");
+g.append("text")
+    .attr("class", "caption")
+    .attr("x", -5)
+    .attr("y", -10)
+    .text("0 - 1000");    
+
+var g = svg.append("g")
+    .attr("transform", "translate(100,280)");
+g.append("circle")
+    .style("stroke", "black")       
+    .style("fill", "#0B3B0B")
+    .attr("class", "caption")
+    .attr("r", 15)
+    .attr("x", -5)
+    .attr("y", -10);        
+
+          
+ var g = svg.append("g")
+    .attr("transform", "translate(100,330)");
+g.append("circle")
+    .style("fill", "#088A29")
+    .style("stroke", "black")
+    .attr("class", "caption")
+    .attr("r", 12)
+    .attr("x", -5)
+    .attr("y", -10);      
+          
+
+    var g = svg.append("g")
+    .attr("transform", "translate(100,380)");
+g.append("circle")
+    .style("fill", "#00FF40")
+    .style("stroke", "black")
+    .attr("class", "caption")
+    .attr("r", 8)
+    .attr("x", -5)
+    .attr("y", -10);   
+          
+        
+    var g = svg.append("g")
+    .attr("transform", "translate(100,430)");
+g.append("circle")
+    .style("fill", "#EFFBF8")
+    .style("stroke", "black")
+    .attr("class", "caption")
+    .attr("r", 5)
+    .attr("x", -5)
+    .attr("y", -10);      
+
+
+
+var projection = d3.geo.mercator()
+                   .scale(130)
+                  .translate( [width / 2, height / 1.5]);
+
+var path = d3.geo.path().projection(projection);
+
+svg.call(tip);
+
+queue()
+    .defer(d3.json, "https://raw.githubusercontent.com/charles-peprah/data/master/world_countries.json")
+    .defer(d3.csv, "https://raw.githubusercontent.com/charles-peprah/data/master/d3_data.csv")
+    .await(ready);
+
+function ready(error, data, Cardiovascular) {
+  var populationById = {};
+
+  Cardiovascular.forEach(function(d) { populationById[d.Code] = +d.Cardiovascular; });
+  data.features.forEach(function(d) { d.Cardiovascular = populationById[d.id] });
+
+  svg.append("g")
+      .attr("class", "countries")
+    .selectAll("path")
+      .data(data.features)
+    .enter().append("path")
+      .attr("d", path)
+      .style("fill", function(d) { return color(populationById[d.id]); })
+      .style('stroke', 'white')
+      .style('stroke-width', 1.5)
+      .style("opacity",0.8)
+
+      // toolkit
+        .style("stroke","white")
+        .style('stroke-width', 0.3)
+        .on('mouseover',function(d){
+          tip.show(d);
+
+          d3.select(this)
+            .style("opacity", 1)
+            .style("stroke","white")
+            .style("stroke-width",3);
+        })
+        .on('mouseout', function(d){
+          tip.hide(d);
+
+          d3.select(this)
+            .style("opacity", 0.8)
+            .style("stroke","white")
+            .style("stroke-width",0.3);
+        });
+
+  svg.append("path")
+      .datum(topojson.mesh(data.features, function(a, b) { return a.id !== b.id; }))
+       // .datum(topojson.mesh(data.features, function(a, b) { return a !== b; }))
+      .attr("class", "names")
+      .attr("d", path);
+
+
+ 
+}
+```
+
+
+
+
+
+
+
+
+
+## Conclusion
+
+
+After carefully exploring the various causes of death across countries, we concluded the following based on our findings from our visualization;
+
+• Cardiovascular diseases are the leading cause of death globally.
+
+• Cancer is the second leading cause of death globally.
+
+• Causes of death varies across countries.
+
+• Non-communicable diseases dominate causes of death in rich countries.
+
+• Infectious diseases are common causes in poor countries.
+
+• The world is making significant progress against infectious diseases related causes of death
+
+
