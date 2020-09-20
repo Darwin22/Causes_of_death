@@ -117,7 +117,6 @@ P  <- dcause2 %>%
   ylab("Number of deaths in 2018 (in millions)")+
   ggtitle(label = "Number of death in the word in 2018", subtitle = "by cause of death")
 
-ggplotly(P) 
 P
 ```
 
